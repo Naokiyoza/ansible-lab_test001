@@ -1,0 +1,41 @@
+---
+# ============================================================
+# Molecule シナリオ設定: nginx_https ロール用
+# nginxはsystemdで管理するため、systemd対応コンテナを使う
+# ============================================================
+dependency:
+  name: galaxy
+
+driver:
+  name: docker
+
+platforms:
+  - name: instance-nginx
+    image: almalinux:9
+    pre_build_image: false
+    # systemd を使うため privileged + tmpfs + /sbin/init が必要
+    privileged: true
+    command: /sbin/init
+    tmpfs:
+      - /run
+      - /tmp
+    # ポート公開(検証時に curl で叩くため)
+    # ホスト側 18443 → コンテナ側 443
+    published_ports:
+      - "18443:443/tcp"
+    # systemd を動かすために必要
+    cgroupns_mode: host
+
+provisioner:
+  name: ansible
+  log: true
+  inventory:
+    host_vars:
+      instance-nginx:
+        ansible_python_interpreter: /usr/bin/python3
+        # ロール内変数を上書きしてテスト
+        nginx_server_name: localhost
+        nginx_ssl_subj: "/CN=localhost"
+
+verifier:
+  name: ansible

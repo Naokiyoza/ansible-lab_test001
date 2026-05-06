@@ -1,0 +1,39 @@
+---
+# ============================================================
+# Molecule シナリオ設定: common ロール用
+# ============================================================
+
+# 依存解決の設定 (必要なら ansible-galaxy collection install など)
+dependency:
+  name: galaxy
+
+# テスト用コンテナを起動するためのドライバ
+driver:
+  name: docker
+
+# テスト対象のプラットフォーム(複数指定可)
+# AlmaLinux 9 でロールをテストする
+platforms:
+  - name: instance-common
+    image: almalinux:9
+    pre_build_image: false  # 毎回ビルドする
+    # systemdは不要(commonロールはパッケージインストールのみ)
+    command: sleep infinity
+    # コンテナ実行時の追加設定
+    privileged: false
+
+# ロールを適用するためのプロビジョナ
+provisioner:
+  name: ansible
+  # Molecule はデフォルトで converge.yml を実行する
+  # ロール自体は roles_path から自動で見える
+  log: true
+  inventory:
+    host_vars:
+      instance-common:
+        ansible_python_interpreter: /usr/bin/python3
+
+# 検証フェーズ(verify) で使うツール
+# ansible/testinfra/goss などから選べる。今回は学習しやすい ansible 形式
+verifier:
+  name: ansible

@@ -1,0 +1,4 @@
+---
+# Molecule のテスト時に自動インストールされる依存
+collections:
+  - name: community.mysql

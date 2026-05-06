@@ -1,0 +1,12 @@
+---
+# ============================================================
+# converge.yml: ロールを適用するプレイブック
+# Molecule の `converge` フェーズで実行される
+# ============================================================
+- name: Converge
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: "Include common role"
+      ansible.builtin.include_role:
+        name: common

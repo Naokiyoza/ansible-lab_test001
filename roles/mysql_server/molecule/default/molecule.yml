@@ -1,0 +1,41 @@
+---
+# ============================================================
+# Molecule シナリオ設定: mysql_server ロール用
+# ============================================================
+dependency:
+  name: galaxy
+  # mysql_server は community.mysql コレクションが必要
+  enabled: true
+  options:
+    # requirements.yml を読み込む(後述)
+    requirements-file: requirements.yml
+
+driver:
+  name: docker
+
+platforms:
+  - name: instance-mysql
+    image: almalinux:9
+    pre_build_image: false
+    privileged: true
+    command: /sbin/init
+    tmpfs:
+      - /run
+      - /tmp
+    cgroupns_mode: host
+
+provisioner:
+  name: ansible
+  log: true
+  inventory:
+    host_vars:
+      instance-mysql:
+        ansible_python_interpreter: /usr/bin/python3
+        # ロールに必要な変数を直接定義(group_vars が無いため)
+        mysql_root_password: "TestRootPass123"
+        mysql_app_db: "testdb"
+        mysql_app_user: "testuser"
+        mysql_app_password: "TestUserPass123"
+
+verifier:
+  name: ansible

@@ -1,0 +1,99 @@
+---
+# ============================================================
+# verify.yml: mysql_server ロール検証
+# ============================================================
+- name: Verify
+  hosts: all
+  gather_facts: false
+
+  vars:
+    mysql_app_db: "testdb"
+    mysql_app_user: "testuser"
+
+  tasks:
+    # === パッケージインストール検証 ===
+    - name: パッケージインストール状況を取得する
+      ansible.builtin.package_facts:
+        manager: rpm
+
+    - name: mysql-server がインストールされているか
+      ansible.builtin.assert:
+        that:
+          - "'mysql-server' in ansible_facts.packages"
+          - "'python3-PyMySQL' in ansible_facts.packages"
+
+    # === MySQLサービス起動状態の検証 ===
+    - name: MySQLサービスの状態を取得する
+      ansible.builtin.service_facts:
+
+    - name: mysqldサービスが起動しているか検証する
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.services['mysqld.service'].state == 'running'
+          - ansible_facts.services['mysqld.service'].status == 'enabled'
+        fail_msg: "mysqld service is not running or enabled"
+
+    # === my.cnf の配布検証 ===
+    - name: custom.cnf の存在確認
+      ansible.builtin.stat:
+        path: /etc/my.cnf.d/custom.cnf
+      register: custom_cnf
+
+    - name: custom.cnf の内容を確認(認証プラグイン)
+      ansible.builtin.command: grep mysql_native_password /etc/my.cnf.d/custom.cnf
+      register: auth_plugin_check
+      changed_when: false
+
+    - name: my.cnf の検証
+      ansible.builtin.assert:
+        that:
+          - custom_cnf.stat.exists
+          - "'mysql_native_password' in auth_plugin_check.stdout"
+
+    # === DBとユーザーの作成検証 ===
+    - name: アプリ用DBが存在するか
+      community.mysql.mysql_query:
+        query: "SHOW DATABASES LIKE '{{ mysql_app_db }}';"
+        login_unix_socket: /var/lib/mysql/mysql.sock
+      register: db_check
+
+    - name: アプリ用ユーザーと認証プラグインの確認
+      community.mysql.mysql_query:
+        query: "SELECT user, plugin FROM mysql.user WHERE user='{{ mysql_app_user }}';"
+        login_unix_socket: /var/lib/mysql/mysql.sock
+      register: user_check
+
+    - name: アプリDBとユーザーが正しく作成されていることを検証する
+      ansible.builtin.assert:
+        that:
+          - db_check.query_result[0] | length > 0
+          - user_check.query_result[0] | length > 0
+          - user_check.query_result[0][0].plugin == 'mysql_native_password'
+        fail_msg: "DB or user creation failed"
+
+    # === セキュリティ設定の検証 ===
+    - name: 匿名ユーザーが削除されているか
+      community.mysql.mysql_query:
+        query: "SELECT user FROM mysql.user WHERE user='';"
+        login_unix_socket: /var/lib/mysql/mysql.sock
+      register: anon_check
+
+    - name: rootのリモートログインが禁止されているか
+      community.mysql.mysql_query:
+        query: "SELECT user FROM mysql.user WHERE user='root' AND host='%';"
+        login_unix_socket: /var/lib/mysql/mysql.sock
+      register: root_remote_check
+
+    - name: testデータベースが削除されているか
+      community.mysql.mysql_query:
+        query: "SHOW DATABASES LIKE 'test';"
+        login_unix_socket: /var/lib/mysql/mysql.sock
+      register: test_db_check
+
+    - name: セキュリティ設定が正しく適用されているか検証する
+      ansible.builtin.assert:
+        that:
+          - anon_check.query_result[0] | length == 0
+          - root_remote_check.query_result[0] | length == 0
+          - test_db_check.query_result[0] | length == 0
+        fail_msg: "Security hardening incomplete"

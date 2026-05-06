@@ -1,0 +1,40 @@
+---
+# ============================================================
+# verify.yml: ロール適用後の検証プレイブック
+# Molecule の `verify` フェーズで実行される
+# assert モジュールで期待値をチェックする
+# ============================================================
+- name: Verify
+  hosts: all
+  gather_facts: false
+
+  vars:
+    expected_packages:
+      - vim-enhanced
+      - git
+      - curl
+      - wget
+      - tree
+
+  tasks:
+    - name: パッケージインストール状況を取得する
+      ansible.builtin.package_facts:
+        manager: rpm
+
+    - name: 期待するパッケージがすべて入っているか検証する
+      ansible.builtin.assert:
+        that:
+          - item in ansible_facts.packages
+        fail_msg: "Package '{{ item }}' is not installed"
+        success_msg: "Package '{{ item }}' is installed"
+      loop: "{{ expected_packages }}"
+
+    - name: 各バイナリが PATH 上で実行可能か検証する
+      ansible.builtin.command: "which {{ item }}"
+      loop:
+        - vim
+        - git
+        - curl
+        - wget
+        - tree
+      changed_when: false

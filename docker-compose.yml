@@ -20,6 +20,9 @@ services:
       - ./group_vars:/ansible/inventory/group_vars
       - ./ansible.cfg:/ansible/ansible.cfg
       - ./.vault_pass.txt:/ansible/.vault_pass.txt:ro
+      # Molecule から host の Docker daemon を操作するため socket をマウント
+      # これにより controller から「兄弟コンテナ」を起動可能になる
+      - /var/run/docker.sock:/var/run/docker.sock
     tty: true
     stdin_open: true
 

@@ -1,0 +1,69 @@
+---
+# ============================================================
+# GitHub Actions: Molecule によるロールテスト
+# プルリクエスト/main プッシュ時に自動でロールをテストする
+# ============================================================
+name: Molecule Test
+
+# トリガー: main へのpush または PR
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  molecule:
+    name: "Test role: ${{ matrix.role }}"
+    runs-on: ubuntu-latest
+
+    # 3つのロールをマトリクスで並列テスト
+    # fail-fast: false にすることで1つ失敗しても他は続行
+    strategy:
+      fail-fast: false
+      matrix:
+        role:
+          - common
+          - nginx_https
+          - mysql_server
+
+    steps:
+      # === ① コードを取得 ===
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # === ② Python のセットアップ ===
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # === ③ Molecule と関連ツールをインストール ===
+      - name: Install Molecule and dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install \
+            ansible \
+            molecule \
+            'molecule-plugins[docker]' \
+            docker \
+            ansible-lint \
+            yamllint
+
+      # === ④ 静的解析 (lint) ===
+      - name: Run yamllint
+        run: yamllint roles/${{ matrix.role }}/
+        continue-on-error: true  # 学習用に失敗しても次に進む
+
+      - name: Run ansible-lint
+        run: ansible-lint roles/${{ matrix.role }}/
+        continue-on-error: true
+
+      # === ⑤ Molecule テスト実行 ===
+      # molecule test は内部で create -> converge -> idempotence -> verify -> destroy を実行
+      - name: Run Molecule test
+        working-directory: roles/${{ matrix.role }}
+        run: molecule test
+        env:
+          PY_COLORS: "1"
+          ANSIBLE_FORCE_COLOR: "1"
