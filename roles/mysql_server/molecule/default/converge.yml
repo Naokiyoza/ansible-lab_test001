@@ -2,7 +2,5 @@
 - name: Converge
   hosts: all
   gather_facts: true
-  tasks:
-    - name: "Include mysql_server role"
-      ansible.builtin.include_role:
-        name: mysql_server
+  roles:
+    - role: mysql_server

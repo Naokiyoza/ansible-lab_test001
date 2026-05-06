@@ -2,7 +2,5 @@
 - name: Converge
   hosts: all
   gather_facts: true
-  tasks:
-    - name: "Include nginx_https role"
-      ansible.builtin.include_role:
-        name: nginx_https
+  roles:
+    - role: nginx_https

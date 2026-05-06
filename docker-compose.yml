@@ -13,6 +13,9 @@ services:
     networks:
       ansible-net:
         ipv4_address: 192.168.1.70
+    environment:
+      # Vault パスワードファイル (env で指定すれば ansible.cfg から外せる)
+      ANSIBLE_VAULT_PASSWORD_FILE: /ansible/.vault_pass.txt
     volumes:
       - ./playbooks:/ansible/playbooks
       - ./inventory:/ansible/inventory

@@ -2,11 +2,12 @@
 # ============================================================
 # converge.yml: ロールを適用するプレイブック
 # Molecule の `converge` フェーズで実行される
+#
+# 注意: Molecule のロール自動解決のため `roles:` ディレクティブを使う
+# (include_role/import_role だと roles_path の自動補正が効かない)
 # ============================================================
 - name: Converge
   hosts: all
   gather_facts: true
-  tasks:
-    - name: "Include common role"
-      ansible.builtin.include_role:
-        name: common
+  roles:
+    - role: common
