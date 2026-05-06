@@ -3,20 +3,20 @@
 
 # サービス起動「前」に my.cnf を配置することで、初期化から認証プラグインが反映される
 - name: MySQL設定ファイルをテンプレートから配置する
-  template:
+  ansible.builtin.template:
     src: custom.cnf.j2
     dest: /etc/my.cnf.d/custom.cnf
     mode: '0644'
   notify: restart mysql
 
 - name: MySQLサービスを起動して自動起動を有効にする
-  service:
+  ansible.builtin.service:
     name: mysqld
     state: started
     enabled: true
 
 - name: MySQLの初期化完了を待つ(socketファイルの生成)
-  wait_for:
+  ansible.builtin.wait_for:
     path: "{{ mysql_socket }}"
     timeout: 30
 
@@ -24,13 +24,13 @@
 # AlmaLinux 9 の標準パッケージはrootが空パスワードで初期化される
 # --no-defaults で /root/.my.cnf を無視して純粋な空パスワード接続を試行する
 - name: root に空パスワードで接続できるか確認する
-  command: mysql --no-defaults -u root -e "SELECT 1;"
+  ansible.builtin.command: mysql --no-defaults -u root -e "SELECT 1;"
   register: empty_password_check
   changed_when: false
   failed_when: false
 
 - name: root の初期状態を表示する
-  debug:
+  ansible.builtin.debug:
     msg: "{{ '空パスワード状態(初回)' if empty_password_check.rc == 0 else 'パスワード設定済み' }}"
 
 - name: root パスワードを設定する(初回のみ)
@@ -47,7 +47,7 @@
 
 # .my.cnf 配布(以降の mysql モジュールがパスワード引数なしで認証できる) ----
 - name: root の .my.cnf を作成する
-  copy:
+  ansible.builtin.copy:
     dest: /root/.my.cnf
     mode: '0600'
     content: |

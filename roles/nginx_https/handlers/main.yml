@@ -3,6 +3,6 @@
 # 同じハンドラが複数回 notify されても1度しか実行されない
 
 - name: restart nginx
-  service:
+  ansible.builtin.service:
     name: nginx
     state: restarted

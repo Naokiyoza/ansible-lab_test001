@@ -67,3 +67,4 @@ jobs:
         env:
           PY_COLORS: "1"
           ANSIBLE_FORCE_COLOR: "1"
+          ANSIBLE_VERBOSITY: "2"  # エラー時の原因特定に有用

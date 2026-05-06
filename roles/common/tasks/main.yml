@@ -4,20 +4,20 @@
 # ============================================================
 
 - name: 共通パッケージをまとめてインストールする(dnf)
-  dnf:
+  ansible.builtin.dnf:
     name: "{{ common_packages }}"
     state: present
     allowerasing: true  # AlmaLinux 9 の curl-minimal 競合対策
 
-- name: インストール済みパッケージの確認
-  command: "rpm -q {{ item }}"
-  loop: "{{ common_packages }}"
-  register: rpm_check
-  changed_when: false
+# ansible.builtin.rpm というモジュールは存在しないため
+# package_facts を使ってインストール済みパッケージを取得する
+- name: パッケージ情報を取得する
+  ansible.builtin.package_facts:
+    manager: rpm
 
-- name: 結果を表示する
-  debug:
-    msg: "{{ item.stdout }}"
-  loop: "{{ rpm_check.results }}"
-  loop_control:
-    label: "{{ item.item }}"
+- name: 期待するパッケージがインストールされているか検証する
+  ansible.builtin.assert:
+    that:
+      - item in ansible_facts.packages
+    fail_msg: "Package '{{ item }}' is not installed"
+  loop: "{{ common_packages }}"

@@ -1,0 +1,17 @@
+---
+# ============================================================
+# prepare.yml: ロール適用前の事前準備
+# テスト用コンテナに Python3 を入れて Ansible を動かせるようにする
+# (素の almalinux:9 にはPythonが入っていないため必要)
+# ============================================================
+- name: Prepare
+  hosts: all
+  gather_facts: false  # Pythonが入る前は gather できない
+
+  tasks:
+    - name: Python3 をインストールする (raw モジュールで)
+      ansible.builtin.raw: |
+        if ! command -v python3 &> /dev/null; then
+          dnf install -y python3
+        fi
+      changed_when: false

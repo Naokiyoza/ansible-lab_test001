@@ -1,0 +1,12 @@
+---
+- name: Prepare
+  hosts: all
+  gather_facts: false
+
+  tasks:
+    - name: Python3 をインストールする (raw モジュールで)
+      ansible.builtin.raw: |
+        if ! command -v python3 &> /dev/null; then
+          dnf install -y python3
+        fi
+      changed_when: false
