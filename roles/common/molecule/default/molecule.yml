@@ -25,9 +25,12 @@ platforms:
 # ロールを適用するためのプロビジョナ
 provisioner:
   name: ansible
-  # Molecule はデフォルトで converge.yml を実行する
-  # ロール自体は roles_path から自動で見える
   log: true
+  # ロール検索パスを明示的に指定する
+  # MOLECULE_PROJECT_DIRECTORY = テスト対象ロールのディレクトリ
+  # その親(..)を指定することで `roles:` ディレクティブから ロール名 で検索可能になる
+  env:
+    ANSIBLE_ROLES_PATH: "${MOLECULE_PROJECT_DIRECTORY}/.."
   inventory:
     host_vars:
       instance-common:
