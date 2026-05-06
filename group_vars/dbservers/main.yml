@@ -1,0 +1,15 @@
+---
+# ============================================================
+# dbservers グループ専用の変数(暗号化なし)
+# パスワードは vault.yml(暗号化済み)で定義し、ここでは参照のみ
+# ============================================================
+
+# DB / ユーザー情報
+mysql_app_db: appdb
+mysql_app_user: appuser
+
+# パスワードは vault.yml の暗号化変数を参照する
+# このパターンにより、コード内では mysql_root_password を使えるが
+# 実体は暗号化された vault_mysql_root_password を参照している
+mysql_root_password: "{{ vault_mysql_root_password }}"
+mysql_app_password: "{{ vault_mysql_app_password }}"

@@ -1,0 +1,15 @@
+---
+- name: Miracle Linux ノードへの接続確認
+  hosts: all
+  gather_facts: true
+
+  tasks:
+    - name: Ansibleからの接続テスト
+      ping:
+
+    - name: OSバージョンとホスト名を表示
+      debug:
+        msg: |
+          ホスト名: {{ inventory_hostname }}
+          OS: {{ ansible_distribution }} {{ ansible_distribution_version }}
+          カーネル: {{ ansible_kernel }}

@@ -1,0 +1,35 @@
+---
+# ============================================================
+# site.yml: 全構成のメインプレイブック
+# 各グループに対応するロールを呼び出すだけのシンプルな構成
+#
+# 実行例:
+#   ansible-playbook /ansible/playbooks/site.yml -i /ansible/inventory/hosts
+#
+# 一部のロールだけ実行:
+#   ansible-playbook /ansible/playbooks/site.yml -i /ansible/inventory/hosts --tags mysql
+# ============================================================
+
+# 全ノードに共通パッケージを展開
+- name: 全ノードに共通パッケージを展開する
+  hosts: all
+  gather_facts: true
+  roles:
+    - role: common
+      tags: [common]
+
+# webservers (node1, node2): nginx HTTPS 構築
+- name: webservers に nginx HTTPS を構築する
+  hosts: webservers
+  gather_facts: true
+  roles:
+    - role: nginx_https
+      tags: [nginx, web]
+
+# dbservers (node3): MySQL 8.0 構築
+- name: dbservers に MySQL 8.0 を構築する
+  hosts: dbservers
+  gather_facts: true
+  roles:
+    - role: mysql_server
+      tags: [mysql, db]

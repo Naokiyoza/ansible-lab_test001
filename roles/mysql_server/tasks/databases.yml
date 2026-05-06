@@ -1,0 +1,42 @@
+---
+# 4. アプリ用データベースとユーザーの作成
+
+- name: アプリ用データベースを作成する
+  community.mysql.mysql_db:
+    name: "{{ mysql_app_db }}"
+    encoding: "{{ mysql_charset }}"
+    collation: "{{ mysql_collation }}"
+    state: present
+    login_unix_socket: "{{ mysql_socket }}"
+
+- name: アプリ用ユーザーを作成して全権限を付与する
+  community.mysql.mysql_user:
+    name: "{{ mysql_app_user }}"
+    password: "{{ mysql_app_password }}"
+    priv: "{{ mysql_app_db }}.*:ALL"
+    host: '%'
+    plugin: "{{ mysql_auth_plugin }}"
+    state: present
+    login_unix_socket: "{{ mysql_socket }}"
+  no_log: true
+
+# === 動作確認 ===
+- name: ユーザーと認証プラグインを確認する
+  community.mysql.mysql_query:
+    query: "SELECT user, host, plugin FROM mysql.user ORDER BY user;"
+    login_unix_socket: "{{ mysql_socket }}"
+  register: mysql_user_list
+
+- name: ユーザー一覧を表示する
+  debug:
+    msg: "{{ mysql_user_list.query_result }}"
+
+- name: データベース一覧を確認する
+  community.mysql.mysql_query:
+    query: "SHOW DATABASES;"
+    login_unix_socket: "{{ mysql_socket }}"
+  register: db_list
+
+- name: データベース一覧を表示する
+  debug:
+    msg: "{{ db_list.query_result }}"

@@ -1,0 +1,11 @@
+{# MySQL カスタム設定テンプレート #}
+[mysqld]
+# 認証プラグイン (Ansibleモジュールや古いクライアントとの互換性のため変更)
+default_authentication_plugin={{ mysql_auth_plugin }}
+
+# 文字コード設定
+character-set-server={{ mysql_charset }}
+collation-server={{ mysql_collation }}
+
+[client]
+default-character-set={{ mysql_charset }}

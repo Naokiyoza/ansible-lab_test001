@@ -1,0 +1,25 @@
+---
+# MySQL サーバ関連のデフォルト変数
+# パスワードは group_vars/dbservers/vault.yml (暗号化) で定義する想定
+
+# 接続設定
+mysql_socket: /var/lib/mysql/mysql.sock
+mysql_log_path: /var/log/mysql/mysqld.log
+
+# 認証プラグイン (MySQL 8.0 では caching_sha2_password がデフォルト)
+mysql_auth_plugin: mysql_native_password
+
+# 文字コード
+mysql_charset: utf8mb4
+mysql_collation: utf8mb4_unicode_ci
+
+# 必須パッケージ
+mysql_packages:
+  - mysql-server
+  - python3-PyMySQL
+
+# アプリケーション用DB/ユーザーは group_vars で定義
+# mysql_root_password: ""  # group_vars/dbservers/vault.yml で定義
+# mysql_app_db: ""         # group_vars/dbservers/main.yml で定義
+# mysql_app_user: ""       # 同上
+# mysql_app_password: ""   # group_vars/dbservers/vault.yml で定義

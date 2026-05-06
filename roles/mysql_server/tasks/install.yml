@@ -1,0 +1,7 @@
+---
+# 1. パッケージインストール
+
+- name: mysql-server と PyMySQL をインストールする
+  dnf:
+    name: "{{ mysql_packages }}"
+    state: present

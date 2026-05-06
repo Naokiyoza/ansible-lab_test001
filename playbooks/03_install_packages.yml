@@ -1,0 +1,29 @@
+---
+- name: 開発ツールの一括インストール
+  hosts: all
+  gather_facts: true
+
+  vars:
+    common_packages:
+      - vim-enhanced
+      - git
+      - curl
+      - wget
+      - tree
+
+  tasks:
+    - name: 共通パッケージをまとめてインストール(dnf)
+      dnf:
+        name: "{{ common_packages }}"
+        state: present
+        allowerasing: true
+
+    - name: インストール済みパッケージの確認
+      command: "rpm -q {{ item }}"
+      loop: "{{ common_packages }}"
+      register: rpm_check
+
+    - name: 結果を表示する
+      debug:
+        msg: "{{ item.stdout }}"
+      loop: "{{ rpm_check.results }}"

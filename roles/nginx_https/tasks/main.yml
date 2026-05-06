@@ -1,0 +1,55 @@
+---
+# ============================================================
+# nginx_https ロール: nginxをHTTPS(443)専用で構築
+# ============================================================
+
+- name: nginx と openssl をインストールする
+  dnf:
+    name:
+      - nginx
+      - openssl
+    state: present
+
+- name: SSL証明書ディレクトリを作成する
+  file:
+    path: "{{ nginx_ssl_dir }}"
+    state: directory
+    mode: '0700'
+
+- name: 自己署名SSL証明書を生成する
+  command: >-
+    openssl req -x509 -nodes
+    -days {{ nginx_ssl_days }}
+    -newkey rsa:{{ nginx_ssl_key_bits }}
+    -keyout {{ nginx_ssl_dir }}/server.key
+    -out    {{ nginx_ssl_dir }}/server.crt
+    -subj "{{ nginx_ssl_subj }}"
+  args:
+    creates: "{{ nginx_ssl_dir }}/server.crt"
+
+- name: nginx HTTPS設定をテンプレートから配置する
+  template:
+    src: ssl.conf.j2
+    dest: /etc/nginx/conf.d/ssl.conf
+    mode: '0644'
+  notify: restart nginx
+
+- name: nginx.conf の HTTP(80) リスナーを無効にする
+  replace:
+    path: /etc/nginx/nginx.conf
+    regexp: '^(\s+listen\s+80.*)'
+    replace: '#\1'
+  notify: restart nginx
+
+- name: nginx.conf の IPv6 HTTP(80) リスナーを無効にする
+  replace:
+    path: /etc/nginx/nginx.conf
+    regexp: '^(\s+listen\s+\[::\]:80.*)'
+    replace: '#\1'
+  notify: restart nginx
+
+- name: nginx を起動して自動起動を有効にする
+  service:
+    name: nginx
+    state: started
+    enabled: true

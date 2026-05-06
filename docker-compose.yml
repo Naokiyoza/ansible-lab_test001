@@ -1,0 +1,64 @@
+networks:
+  ansible-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.1.0/24
+
+services:
+  controller:
+    build: ./controller
+    container_name: ansible-controller
+    hostname: controller
+    networks:
+      ansible-net:
+        ipv4_address: 192.168.1.70
+    volumes:
+      - ./playbooks:/ansible/playbooks
+      - ./inventory:/ansible/inventory
+      - ./roles:/ansible/roles
+      - ./group_vars:/ansible/inventory/group_vars
+      - ./ansible.cfg:/ansible/ansible.cfg
+      - ./.vault_pass.txt:/ansible/.vault_pass.txt:ro
+    tty: true
+    stdin_open: true
+
+  node1:
+    build: ./managed-nodes
+    container_name: ansible-node1
+    hostname: node1
+    networks:
+      ansible-net:
+        ipv4_address: 192.168.1.71
+    ports:
+      - "8443:443"
+    privileged: true
+    tmpfs:
+      - /run
+      - /tmp
+
+  node2:
+    build: ./managed-nodes
+    container_name: ansible-node2
+    hostname: node2
+    networks:
+      ansible-net:
+        ipv4_address: 192.168.1.72
+    ports:
+      - "8444:443"
+    privileged: true
+    tmpfs:
+      - /run
+      - /tmp
+
+  node3:
+    build: ./managed-nodes
+    container_name: ansible-node3
+    hostname: node3
+    networks:
+      ansible-net:
+        ipv4_address: 192.168.1.73
+    privileged: true
+    tmpfs:
+      - /run
+      - /tmp

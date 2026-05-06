@@ -1,0 +1,21 @@
+---
+# ============================================================
+# mysql_server ロール: MySQL 8.0 構築の親タスク
+# 各処理を import_tasks で分割して可読性を確保
+# ============================================================
+
+- name: パッケージインストール
+  import_tasks: install.yml
+  tags: [mysql, install]
+
+- name: 設定ファイル配置とサービス起動
+  import_tasks: configure.yml
+  tags: [mysql, configure]
+
+- name: セキュリティ初期設定
+  import_tasks: secure.yml
+  tags: [mysql, secure]
+
+- name: アプリ用DBとユーザー作成
+  import_tasks: databases.yml
+  tags: [mysql, db]

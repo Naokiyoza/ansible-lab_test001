@@ -1,0 +1,10 @@
+---
+# ============================================================
+# webservers グループ専用の変数
+# ============================================================
+
+# nginx_https ロールのデフォルト変数を上書き
+nginx_https_port: 443
+nginx_server_name: "{{ inventory_hostname }}"
+nginx_ssl_subj: "/C=JP/ST=Tokyo/O=AnsibleLab/CN={{ inventory_hostname }}"
+nginx_ssl_days: 365

@@ -1,0 +1,14 @@
+# Vault password file - 絶対にコミット禁止
+.vault_pass.txt
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+*.swp
+*.swo
+*~
+
+# Ansible
+*.retry

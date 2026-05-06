@@ -1,0 +1,14 @@
+# Ansibleが操作するサーバーの一覧
+[webservers]
+node1 ansible_host=192.168.1.71
+node2 ansible_host=192.168.1.72
+
+[dbservers]
+node3 ansible_host=192.168.1.73
+
+[all:vars]
+ansible_user=ansible
+ansible_password=ansible
+ansible_become=yes
+ansible_become_method=sudo
+ansible_become_pass=ansible

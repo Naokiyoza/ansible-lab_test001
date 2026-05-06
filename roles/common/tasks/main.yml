@@ -1,0 +1,23 @@
+---
+# ============================================================
+# common ロール: 全ノード共通の基本パッケージをインストール
+# ============================================================
+
+- name: 共通パッケージをまとめてインストールする(dnf)
+  dnf:
+    name: "{{ common_packages }}"
+    state: present
+    allowerasing: true  # AlmaLinux 9 の curl-minimal 競合対策
+
+- name: インストール済みパッケージの確認
+  command: "rpm -q {{ item }}"
+  loop: "{{ common_packages }}"
+  register: rpm_check
+  changed_when: false
+
+- name: 結果を表示する
+  debug:
+    msg: "{{ item.stdout }}"
+  loop: "{{ rpm_check.results }}"
+  loop_control:
+    label: "{{ item.item }}"

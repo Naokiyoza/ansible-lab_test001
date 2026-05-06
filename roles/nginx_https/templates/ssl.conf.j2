@@ -1,0 +1,14 @@
+{# nginx HTTPS設定テンプレート (Jinja2) #}
+{# 変数は roles/nginx_https/defaults/main.yml もしくは group_vars で定義 #}
+server {
+    listen {{ nginx_https_port }} ssl;
+    server_name {{ nginx_server_name }};
+
+    ssl_certificate     {{ nginx_ssl_dir }}/server.crt;
+    ssl_certificate_key {{ nginx_ssl_dir }}/server.key;
+
+    location / {
+        root  {{ nginx_doc_root }};
+        index index.html index.htm;
+    }
+}

@@ -1,0 +1,23 @@
+---
+# 3. セキュリティ設定 (mysql_secure_installation 相当)
+
+- name: 匿名ユーザーを削除する
+  community.mysql.mysql_user:
+    name: ''
+    host_all: true
+    state: absent
+    login_unix_socket: "{{ mysql_socket }}"
+
+- name: root のリモートログインを禁止する
+  community.mysql.mysql_user:
+    name: root
+    host: '%'
+    state: absent
+    login_unix_socket: "{{ mysql_socket }}"
+  failed_when: false
+
+- name: test データベースを削除する
+  community.mysql.mysql_db:
+    name: test
+    state: absent
+    login_unix_socket: "{{ mysql_socket }}"

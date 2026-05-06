@@ -1,0 +1,14 @@
+---
+# nginx HTTPS 関連のデフォルト変数
+# group_vars/webservers/main.yml などで上書き可能
+
+# SSL証明書関連
+nginx_ssl_dir: /etc/nginx/ssl
+nginx_ssl_days: 365
+nginx_ssl_key_bits: 2048
+nginx_ssl_subj: "/CN=localhost"
+
+# nginx 関連
+nginx_https_port: 443
+nginx_doc_root: /usr/share/nginx/html
+nginx_server_name: localhost

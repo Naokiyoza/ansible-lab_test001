@@ -1,0 +1,8 @@
+---
+# ハンドラ: タスクから notify されたときのみ実行される
+# 同じハンドラが複数回 notify されても1度しか実行されない
+
+- name: restart nginx
+  service:
+    name: nginx
+    state: restarted

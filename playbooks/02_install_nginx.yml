@@ -1,0 +1,29 @@
+---
+# Miracle Linux 9 はdnfモジュールを使用する
+- name: Nginxのインストールと起動
+  hosts: webservers
+  gather_facts: true
+
+  tasks:
+    - name: パッケージキャッシュを更新する
+      dnf:
+        update_cache: yes
+
+    - name: nginxをインストールする
+      dnf:
+        name: nginx
+        state: present
+
+    - name: nginxを起動して自動起動を有効にする
+      service:
+        name: nginx
+        state: started
+        enabled: yes
+
+    - name: インストール結果を確認する
+      command: nginx -v
+      register: nginx_version
+
+    - name: バージョン情報を表示する
+      debug:
+        msg: "{{ inventory_hostname }} に {{ nginx_version.stderr }} をインストールしました"

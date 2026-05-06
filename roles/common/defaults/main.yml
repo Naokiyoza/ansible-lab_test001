@@ -1,0 +1,9 @@
+---
+# 全ホストにインストールする共通パッケージ
+# group_vars 等で上書き可能
+common_packages:
+  - vim-enhanced
+  - git
+  - curl
+  - wget
+  - tree

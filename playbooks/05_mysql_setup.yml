@@ -1,0 +1,195 @@
+---
+# ============================================================
+# MySQL 8.0 の構築と初期設定
+# 対象: dbservers (node3)
+#
+# 実行前に必要な準備:
+#   ansible-galaxy collection install community.mysql
+# ============================================================
+- name: MySQL 8.0 の構築と初期設定
+  hosts: dbservers
+  gather_facts: true
+
+  vars:
+    mysql_root_password: "RootPass123!"   # rootパスワード
+    mysql_app_db: "appdb"                 # アプリ用DB名
+    mysql_app_user: "appuser"             # アプリ用ユーザー名
+    mysql_app_password: "AppPass123!"     # アプリ用パスワード
+
+  tasks:
+
+    # ===========================================================
+    # 1. パッケージインストール
+    # ===========================================================
+
+    # AlmaLinux 9 では MySQL 8.0 が標準パッケージで提供されているため
+    # AlmaLinux 8 のような dnf module enable は不要
+    - name: mysql-server と PyMySQL をインストールする
+      dnf:
+        name:
+          - mysql-server
+          - python3-PyMySQL  # Ansible の mysql_user/mysql_db モジュールが必要とする
+        state: present
+
+    # ===========================================================
+    # 2. my.cnf の配布(認証プラグインと文字コードの設定)
+    # ===========================================================
+
+    # MySQL 8.0 のデフォルト認証プラグインは caching_sha2_password だが
+    # Ansible の mysql モジュールとの互換性のため mysql_native_password を指定
+    # サービス起動前に配置することで初期化から反映される
+    - name: MySQL設定ファイルを配置する
+      copy:
+        dest: /etc/my.cnf.d/custom.cnf
+        content: |
+          [mysqld]
+          # 認証プラグインを mysql_native_password に変更
+          # (Ansibleモジュールや古いクライアントとの互換性確保のため)
+          default_authentication_plugin=mysql_native_password
+
+          # 文字コード設定(日本語対応)
+          character-set-server=utf8mb4
+          collation-server=utf8mb4_unicode_ci
+
+          [client]
+          default-character-set=utf8mb4
+
+    # ===========================================================
+    # 3. サービスの起動・有効化
+    # ===========================================================
+
+    # 初回起動時に /var/lib/mysql 以下のデータディレクトリが初期化される
+    # このタイミングで一時rootパスワードが /var/log/mysql/mysqld.log に書き込まれる
+    - name: MySQLサービスを起動して自動起動を有効にする
+      service:
+        name: mysqld
+        state: started
+        enabled: true
+
+    # サービス起動直後はソケットファイルの作成が間に合わない場合があるため待機
+    - name: MySQLの初期化完了を待つ
+      wait_for:
+        path: /var/lib/mysql/mysql.sock
+        timeout: 30
+
+    # ===========================================================
+    # 4. rootパスワードの設定(初回のみ)
+    # ===========================================================
+    # AlmaLinux 9 標準パッケージのMySQL 8.0は初期rootパスワードが空文字
+    # (MySQL Community Server なら一時パスワードがログに出力されるが
+    #  ディストリビューション提供パッケージは空パスワード初期化が一般的)
+
+    # 空パスワードで接続できるかチェック
+    # --no-defaults で /root/.my.cnf を無視し純粋に空パスワードで試行する
+    - name: rootに空パスワードで接続できるか確認する
+      command: mysql --no-defaults -u root -e "SELECT 1;"
+      register: empty_password_check
+      changed_when: false
+      failed_when: false
+
+    - name: rootの初期状態を表示する
+      debug:
+        msg: "{{ '空パスワード状態(初回)' if empty_password_check.rc == 0 else 'パスワード設定済み(2回目以降)' }}"
+
+    # 空パスワードで入れる場合のみ、rootパスワードを設定する(初回のみ)
+    - name: rootパスワードを設定する
+      command: >-
+        mysql --no-defaults -u root -e
+        "ALTER USER 'root'@'localhost'
+         IDENTIFIED WITH mysql_native_password
+         BY '{{ mysql_root_password }}';"
+      when: empty_password_check.rc == 0
+      no_log: true  # パスワードをログに出力しない
+
+    # ===========================================================
+    # 5. Ansible接続用の .my.cnf を作成
+    # ===========================================================
+
+    # このファイルを置いておくと以降の mysql_user / mysql_db モジュールが
+    # パスワードを引数で渡さなくても自動で認証できる
+    - name: rootの.my.cnfを作成する(Ansible接続用)
+      copy:
+        dest: /root/.my.cnf
+        mode: '0600'  # rootのみ読み取り可能
+        content: |
+          [client]
+          user=root
+          password={{ mysql_root_password }}
+      no_log: true
+
+    # ===========================================================
+    # 6. セキュリティ設定(mysql_secure_installation 相当)
+    # ===========================================================
+
+    # 匿名ユーザーを削除する(初期状態では '' ユーザーが存在する)
+    - name: 匿名ユーザーを削除する
+      community.mysql.mysql_user:
+        name: ''
+        host_all: true
+        state: absent
+        login_unix_socket: /var/lib/mysql/mysql.sock
+
+    # rootのリモートログインを禁止する(host='%' のエントリを削除)
+    - name: rootのリモートログインを禁止する
+      community.mysql.mysql_user:
+        name: root
+        host: '%'
+        state: absent
+        login_unix_socket: /var/lib/mysql/mysql.sock
+      failed_when: false  # 存在しない場合もエラーにしない
+
+    # テスト用DBを削除する
+    - name: testデータベースを削除する
+      community.mysql.mysql_db:
+        name: test
+        state: absent
+        login_unix_socket: /var/lib/mysql/mysql.sock
+
+    # ===========================================================
+    # 7. アプリ用データベースとユーザーの作成
+    # ===========================================================
+
+    - name: アプリ用データベースを作成する
+      community.mysql.mysql_db:
+        name: "{{ mysql_app_db }}"
+        encoding: utf8mb4
+        collation: utf8mb4_unicode_ci
+        state: present
+        login_unix_socket: /var/lib/mysql/mysql.sock
+
+    # priv で GRANT ALL PRIVILEGES ON appdb.* TO 'appuser'@'%' に相当
+    # plugin で明示的に mysql_native_password を指定
+    - name: アプリ用ユーザーを作成してGRANTを設定する
+      community.mysql.mysql_user:
+        name: "{{ mysql_app_user }}"
+        password: "{{ mysql_app_password }}"
+        priv: "{{ mysql_app_db }}.*:ALL"
+        host: '%'
+        plugin: mysql_native_password
+        state: present
+        login_unix_socket: /var/lib/mysql/mysql.sock
+      no_log: true
+
+    # ===========================================================
+    # 8. 設定確認
+    # ===========================================================
+
+    - name: ユーザーと認証プラグインを確認する
+      community.mysql.mysql_query:
+        query: "SELECT user, host, plugin FROM mysql.user ORDER BY user;"
+        login_unix_socket: /var/lib/mysql/mysql.sock
+      register: mysql_user_list
+
+    - name: ユーザー一覧を表示する
+      debug:
+        msg: "{{ mysql_user_list.query_result }}"
+
+    - name: データベース一覧を確認する
+      community.mysql.mysql_query:
+        query: "SHOW DATABASES;"
+        login_unix_socket: /var/lib/mysql/mysql.sock
+      register: db_list
+
+    - name: データベース一覧を表示する
+      debug:
+        msg: "{{ db_list.query_result }}"

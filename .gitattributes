@@ -1,0 +1,21 @@
+# デフォルトはGitに自動判定させる
+* text=auto
+
+# Ansible関連は必ずLFで保存(Linuxコンテナで動くため)
+*.yml      text eol=lf
+*.yaml     text eol=lf
+*.j2       text eol=lf
+*.cfg      text eol=lf
+*.sh       text eol=lf
+
+# Dockerfile / docker-compose もLF
+Dockerfile text eol=lf
+docker-compose.yml text eol=lf
+
+# 暗号化済み Vault は変換しない(改ざん防止)
+**/vault.yml -text
+
+# バイナリは変換しない
+*.png binary
+*.jpg binary
+*.gif binary

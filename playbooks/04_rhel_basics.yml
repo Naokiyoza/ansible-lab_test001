@@ -1,0 +1,77 @@
+---
+- name: RHEL系(Miracle Linux)の基本操作
+  hosts: all
+  gather_facts: true
+
+  tasks:
+    # SELinuxの確認(RHEL系特有のセキュリティ機構)
+    - name: SELinuxの状態を確認
+      command: getenforce
+      register: selinux_status
+      ignore_errors: true
+
+    - name: SELinux状態を表示
+      debug:
+        msg: "SELinux: {{ selinux_status.stdout | default('コンテナ環境のため無効', true) }}"
+
+    # =========================================================
+    # webservers (node1, node2): nginxをHTTPS(443)専用に移行
+    # =========================================================
+    - name: opensslをインストールする
+      dnf:
+        name: openssl
+        state: present
+      when: inventory_hostname in groups['webservers']
+
+    - name: nginx用SSL証明書ディレクトリを作成する
+      file:
+        path: /etc/nginx/ssl
+        state: directory
+        mode: '0700'
+      when: inventory_hostname in groups['webservers']
+
+    - name: nginxの自己署名SSL証明書を生成する
+      command: >-
+        openssl req -x509 -nodes -days 365 -newkey rsa:2048
+        -keyout /etc/nginx/ssl/server.key
+        -out /etc/nginx/ssl/server.crt
+        -subj "/CN=localhost"
+      args:
+        creates: /etc/nginx/ssl/server.crt
+      when: inventory_hostname in groups['webservers']
+
+    - name: nginxのHTTPS(443)設定を配置する
+      copy:
+        dest: /etc/nginx/conf.d/ssl.conf
+        content: |
+          server {
+              listen 443 ssl;
+              server_name localhost;
+              ssl_certificate /etc/nginx/ssl/server.crt;
+              ssl_certificate_key /etc/nginx/ssl/server.key;
+              location / {
+                  root /usr/share/nginx/html;
+                  index index.html index.htm;
+              }
+          }
+      when: inventory_hostname in groups['webservers']
+
+    - name: nginx.confのHTTP(port 80)リスナーを無効にする
+      replace:
+        path: /etc/nginx/nginx.conf
+        regexp: '^(\s+listen\s+80.*)'
+        replace: '#\1'
+      when: inventory_hostname in groups['webservers']
+
+    - name: nginx.confのIPv6 HTTP(port 80)リスナーを無効にする
+      replace:
+        path: /etc/nginx/nginx.conf
+        regexp: '^(\s+listen\s+\[::\]:80.*)'
+        replace: '#\1'
+      when: inventory_hostname in groups['webservers']
+
+    - name: nginxをHTTPS設定で再起動する
+      service:
+        name: nginx
+        state: restarted
+      when: inventory_hostname in groups['webservers']
